@@ -13,6 +13,22 @@ formatboldreset='\e[21m'
 formatbold='\e[1m'
 formatunderline='\e[4m'
 formatunderlinereset='\e[24m'
+ 
+function uklid {
+    if [ -d "$tmpdir" ];
+    then
+        rm -rf "$tmpdir"
+    fi
+}
+
+function term {
+    chyba "$2"
+    exit "$1"
+}
+
+function chyba {
+    echo -e "${formatbold}${colorred}${formatunderline}ERROR${formatunderlinereset}: $1${colorreset}${formatboldreset}"
+}
 
 # Uvodni zprava
 echo -e "\n"
@@ -26,24 +42,21 @@ PROGRAM=$1
 tmpdir="/tmp/testdata"
 
 # Uklid po minule
-if [ -d "$tmpdir" ];
-then
-rm -rf "$tmpdir"
-fi
+
 
 # Byly vubec zadany argumenty?
 if [ -z "${2+xxx}" ];
 then 
 ARCHIV="sample.tgz"
-echo "Nebyla uvedena cesta k archivu."
-echo "Pouzivam implicitni archiv \"./sample.tgz\"."
+#echo "Nebyla uvedena cesta k archivu."
+#echo "Pouzivam implicitni archiv \"./sample.tgz\"."
 fi
 
 if [ -z "${1+xxx}" ];
 then
 PROGRAM="./a.out"
-echo "Nebyla uvedena cesta k spustitelnemu souboru."
-echo "Pouzivam implicitni program \"./a.out\""
+#echo "Nebyla uvedena cesta k spustitelnemu souboru."
+#echo "Pouzivam implicitni program \"./a.out\""
 fi
 
 # Jsou cesty absolutni nebo relativni?
@@ -52,21 +65,44 @@ initialprog="$(echo $PROGRAM | head -c 1)"
 
 if [  "$initialarch" != "/" ];
 then
-ARCHIV="$(pwd)/$ARCHIV"
+    ARCHIV="$(pwd)/$ARCHIV"
 fi
 
 if [  "$initialprog" != "/" ];
 then
-PROGRAM="$(pwd)/$PROGRAM"
+    PROGRAM="$(pwd)/$PROGRAM"
 fi
 
+if [ ! -e "$PROGRAM" ]
+then
+    term "5" "\"$PROGRAM\" neexistuje"
+fi
+
+if [ ! -e "$ARCHIV" ]
+then
+    term "5" "\"$ARCHIV\" neexistuje"
+fi
+
+
 # Vytvorime si tmp adresare pro praci se soubory
-mkdir "$tmpdir"
-mkdir -p "$tmpdir/referencni_archiv" > "$tmpdir/log.txt" 2>&1
-mkdir -p "$tmpdir/vysledky" >> "$tmpdir/log.txt" 2>&1
+if  ! mkdir "$tmpdir" > "/dev/null" 2>&1 ;
+then
+    term "1" "Nelze vytvorit \"$tmpdir\""
+fi
+if  ! mkdir -p "$tmpdir/referencni_archiv" > "/dev/null" 2>&1 ;
+then
+    term "1" "Nelze vytvorit \"$tmpdir/referencni_archiv\""
+fi
+if  ! mkdir -p "$tmpdir/vysledky" > "/dev/null" 2>&1 ;
+then
+    term "1" "Nelze vytvorit \"$tmpdir/vysledky\""
+fi
 
 # Rozbalime archiv
-tar -C "$tmpdir/referencni_archiv" -xvf "$ARCHIV" >> "$tmpdir/log.txt" 2>&1
+if  ! tar -C "$tmpdir/referencni_archiv" -xvf "$ARCHIV" > "/dev/null" 2>&1 ;
+then
+    term "2" "Nelze rozbalit \"$ARCHIV\" do \"$tmpdir/referencni_archiv\""
+fi
 
 # Pripravime pole s referencnimi vystupy
 declare -a REFERVYS
@@ -74,7 +110,7 @@ declare -a REFERVYS
 i=0
 
 # Postupne si ulozime referencni vystupy do pole
-for SOUBOR in `ls -v $tmpdir/referencni_archiv/CZE/*_out.txt`;
+for SOUBOR in $(ls -v $tmpdir/referencni_archiv/CZE/*_out.txt);
 do
     REFERVYS[$i]="$SOUBOR"
     i=$((i+1))
@@ -84,7 +120,7 @@ done
 declare -a REFERVSTUP
 i=0
 
-for SOUBOR in `ls -v $tmpdir/referencni_archiv/CZE/*_in.txt`;
+for SOUBOR in $(ls -v $tmpdir/referencni_archiv/CZE/*_in.txt);
 do
     REFERVSTUP[$i]="$SOUBOR"
     i=$((i+1))
@@ -96,8 +132,11 @@ declare -a MYVYSTUP
 
 for SOUBOR in ${REFERVSTUP[*]};
 do
-    ITER=`printf "%04d" $i`
-    $PROGRAM < $SOUBOR > "$tmpdir/vysledky/${ITER}_myout.txt"
+    ITER=$(printf "%04d" $i)
+    $PROGRAM < $SOUBOR > "$tmpdir/vysledky/${ITER}_myout.txt" ;
+    #then
+    #    term "3" "Nelze spustit \"$PROGRAM\", nebo nelze cist \"$SOUBOR\", nebo nelze zapsat \"$tmpdir/vysledky/${ITER}_myout.txt\""
+    #fi
     MYVYSTUP[$i]="$tmpdir/vysledky/${ITER}_myout.txt"
     i=$((i+1))
 done
@@ -145,5 +184,9 @@ else
 fi
  
 # Uklidime po sobe, nechame pouze adresar a v nem log
-rm -rf "$tmpdir/referencni_archiv" >> "log.txt" 2>&1
-rm -rf "$tmpdir/vysledky" >> "log.txt" 2>&1
+if  ! rm -rf "$tmpdir" > "/dev/null" 2>&1 ;
+then
+    term "4" "Nelze smazat \"$tmpdir\""
+fi
+
+exit 0
