@@ -105,16 +105,33 @@ done
 
 # Spocitame chyby
 chyby=0
+declare -a ROZDILY
 i=0
 for SOUBOR in ${REFERVYS[*]};
 do
     # Porovnavame, pri rozdilu inkrementujeme $chyby
-    diff "$SOUBOR" "${MYVYSTUP[$i]}" > "log.txt"  2>&1
+    ROZDILY[$i]="$(diff "$SOUBOR" "${MYVYSTUP[$i]}" 2>&1)"
     if [ $? == 1 ];
     then
         chyby=$((chyby+1))
+    else
+        ROZDILY[$i]=""
+        #echo "neni chyba"
     fi
     i=$((i+1))
+done
+echo "----------"
+i=1
+for ROZDIL in "${ROZDILY[@]}";
+do
+    if [ "$ROZDIL" != "" ];
+    then
+        echo -e "${colorred}${formatbold}Vystup $i${formatboldreset}${colorreset}"
+        echo -e "${coloryellow}-----${colorreset}"
+        echo "$ROZDIL"
+        echo -e "${coloryellow}----------${colorreset}"
+        i=$(($i+1))
+    fi
 done
 
 # Oznamime vysledek
