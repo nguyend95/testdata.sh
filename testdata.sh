@@ -1,19 +1,25 @@
 #!/bin/bash
 
+ARCHIV=$2
+PROGRAM=$1
+
 if [ -z "${2+xxx}" ];
 then 
-ARCHIV="sample.tgz" 
+ARCHIV="sample.tgz"
+echo "nebyl zadan druhy parametr"
 fi
 
 if [ -z "${1+xxx}" ];
 then
 PROGRAM="./a.out"
+echo "nebyl zadan prvni parametr"
 fi
 
 mkdir referencni_archiv > "log.txt" 2>&1
 mkdir vysledky >> "log.txt" 2>&1
 
-tar -C "referencni_archiv" -xvf $ARCHIV >> "log.txt" 2>&1
+echo "referencni archiv je $ARCHIV"
+tar -C "referencni_archiv" -xvf "$ARCHIV" >> "log.txt" 2>&1
 
 declare -a REFERVYS
 i=0
