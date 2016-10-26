@@ -1,7 +1,30 @@
 #!/bin/bash
 
+colorreset='\e[39m'
+coloryellow='\e[33m'
+colorblue='\e[34m'
+colorcyan='\e[36m'
+colorred='\e[31m'
+colorgreen='\e[32m'
+
+formatboldreset='\e[21m'
+formatbold='\e[1m'
+formatunderline='\e[4m'
+formatunderlinereset='\e[24m'
+
+echo -e "\n"
+echo -e "${formatbold}${colorcyan}Testovaci skript pro PA1${colorreset}${formatboldreset}"
+echo -e "${colorblue}Jakub Jun 2016${colorreset}"
+
 ARCHIV=$2
 PROGRAM=$1
+tmpdir="/tmp/testdata"
+
+
+if [ -d "$tmpdir" ];
+then
+rm -rf "$tmpdir"
+fi
 
 if [ -z "${2+xxx}" ];
 then 
@@ -15,16 +38,31 @@ PROGRAM="./a.out"
 echo "nebyl zadan prvni parametr"
 fi
 
-mkdir referencni_archiv > "log.txt" 2>&1
-mkdir vysledky >> "log.txt" 2>&1
+initialarch="$(echo $ARCHIV | head -c 1)"
+initialprog="$(echo $PROGRAM | head -c 1)"
 
-echo "referencni archiv je $ARCHIV"
-tar -C "referencni_archiv" -xvf "$ARCHIV" >> "log.txt" 2>&1
+if [  "$initialarch" != "/" ];
+then
+ARCHIV="$(pwd)/$ARCHIV"
+fi
+
+
+if [  "$initialprog" != "/" ];
+then
+PROGRAM="$(pwd)/$PROGRAM"
+# echo "$PROGRAM"
+fi
+mkdir "$tmpdir"
+mkdir -p "$tmpdir/referencni_archiv" > "$tmpdir/log.txt" 2>&1
+mkdir -p "$tmpdir/vysledky" >> "$tmpdir/log.txt" 2>&1
+
+# echo "referencni archiv je $ARCHIV"
+tar -C "$tmpdir/referencni_archiv" -xvf "$ARCHIV" >> "$tmpdir/log.txt" 2>&1
 
 declare -a REFERVYS
 i=0
 
-for SOUBOR in `ls -v referencni_archiv/CZE/*_out.txt`;
+for SOUBOR in `ls -v $tmpdir/referencni_archiv/CZE/*_out.txt`;
 do
     REFERVYS[$i]="$SOUBOR"
     i=$((i+1))
@@ -33,7 +71,7 @@ done
 declare -a REFERVSTUP
 i=0
 
-for SOUBOR in `ls -v referencni_archiv/CZE/*_in.txt`;
+for SOUBOR in `ls -v $tmpdir/referencni_archiv/CZE/*_in.txt`;
 do
     REFERVSTUP[$i]="$SOUBOR"
     i=$((i+1))
@@ -47,8 +85,8 @@ for SOUBOR in ${REFERVSTUP[*]};
 do
     ITER=`printf "%04d" $i`
     # echo $ITER
-    $PROGRAM < $SOUBOR > "vysledky/${ITER}_myout.txt"
-    MYVYSTUP[$i]="vysledky/${ITER}_myout.txt"
+    $PROGRAM < $SOUBOR > "$tmpdir/vysledky/${ITER}_myout.txt"
+    MYVYSTUP[$i]="$tmpdir/vysledky/${ITER}_myout.txt"
     i=$((i+1))
 done
 
@@ -68,10 +106,10 @@ done
 
 if [ $chyby == 0 ];
 then
-    echo "vse je v poradku"
+    echo -e "${colorgreen}${formatbold}vse je v poradku${formatboldreset}${colorreset}"
 else
-    echo "$chyby vystupu nesedi"
+    echo -e "${formatbold}${colorred}${formatunderline}$chyby${formatunderlinereset} vystupu nesedi${colorreset}${formatboldreset}"
 fi
  
-rm -rf "referencni_archiv" >> "log.txt" 2>&1
-rm -rf "vysledky" >> "log.txt" 2>&1
+rm -rf "$tmpdir/referencni_archiv" >> "log.txt" 2>&1
+rm -rf "$tmpdir/vysledky" >> "log.txt" 2>&1
