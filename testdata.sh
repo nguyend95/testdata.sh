@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# TODO
+# vyrobit funkce!!!
+# konfiguracni soubor
+# prizpusobit format diffu
+# pouzit printf misto echo
+# zavest log do FS
+
+
 # Barvy
 colorreset='\e[39m'
 coloryellow='\e[33m'
@@ -14,19 +22,23 @@ formatbold='\e[1m'
 formatunderline='\e[4m'
 formatunderlinereset='\e[24m'
  
-function uklid {
+ 
+# Funkce pro uklid
+uklid () {
     if [ -d "$tmpdir" ];
     then
         rm -rf "$tmpdir"
     fi
 }
 
-function term {
+# Funkce pro terminaci
+term () {
     chyba "$2"
     exit "$1"
 }
 
-function chyba {
+# Funkce vypisuje chyby
+chyba () {
     echo -e "${formatbold}${colorred}${formatunderline}ERROR${formatunderlinereset}: $1${colorreset}${formatboldreset}"
 }
 
@@ -40,9 +52,6 @@ echo -e "${colorblue}https://github.com/jayjay221/testdata.sh${colorreset}"
 ARCHIV=$2
 PROGRAM=$1
 tmpdir="/tmp/testdata"
-
-# Uklid po minule
-
 
 # Byly vubec zadany argumenty?
 if [ -z "${2+xxx}" ];
@@ -73,6 +82,7 @@ then
     PROGRAM="$(pwd)/$PROGRAM"
 fi
 
+# Existuji soubory?
 if [ ! -e "$PROGRAM" ]
 then
     term "5" "\"$PROGRAM\" neexistuje"
@@ -82,7 +92,6 @@ if [ ! -e "$ARCHIV" ]
 then
     term "5" "\"$ARCHIV\" neexistuje"
 fi
-
 
 # Vytvorime si tmp adresare pro praci se soubory
 if  ! mkdir "$tmpdir" > "/dev/null" 2>&1 ;
@@ -133,10 +142,8 @@ declare -a MYVYSTUP
 for SOUBOR in ${REFERVSTUP[*]};
 do
     ITER=$(printf "%04d" $i)
+    # Nasledujici prikaz potreba osetrit.
     $PROGRAM < $SOUBOR > "$tmpdir/vysledky/${ITER}_myout.txt" ;
-    #then
-    #    term "3" "Nelze spustit \"$PROGRAM\", nebo nelze cist \"$SOUBOR\", nebo nelze zapsat \"$tmpdir/vysledky/${ITER}_myout.txt\""
-    #fi
     MYVYSTUP[$i]="$tmpdir/vysledky/${ITER}_myout.txt"
     i=$((i+1))
 done
@@ -155,7 +162,6 @@ do
         chyby=$((chyby+1))
     else
         ROZDILY[$i]=""
-        #echo "neni chyba"
     fi
     i=$((i+1))
 done
@@ -183,7 +189,7 @@ else
     echo -e "${formatbold}${colorred}${formatunderline}$chyby${formatunderlinereset} vystupu nesedi${colorreset}${formatboldreset}"
 fi
  
-# Uklidime po sobe, nechame pouze adresar a v nem log
+# Uklidime po sobe
 if  ! rm -rf "$tmpdir" > "/dev/null" 2>&1 ;
 then
     term "4" "Nelze smazat \"$tmpdir\""
