@@ -186,12 +186,12 @@ do
 done
 
 echo -e "${colorcyan}${formatbold}--------------${formatboldreset}${colorreset}"
-i=1
+i=0
 for ROZDIL in "${ROZDILY[@]}";
 do
     if [ "$ROZDIL" != "" ];
     then
-        echo -e "${colorred}${formatbold}Vystup $((i-1)) [${coloryellow}$(basename ${REFERVYS[i]})${colorred}]${formatboldreset}${colorreset}"
+        echo -e "${colorred}${formatbold}Vystup $((i)) [${coloryellow}$(basename ${REFERVYS[i]})${colorred}]${formatboldreset}${colorreset}"
         echo -e "${coloryellow}----------------${colorreset}"
         echo "$ROZDIL"
         echo -e "${coloryellow}----------------${colorreset}"
