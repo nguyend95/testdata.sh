@@ -2,8 +2,10 @@
 
 # TODO
 # vyrobit funkce!!!
+# funkce pro barvy
+# je to docela bordel tedka
 # konfiguracni soubor
-# prizpusobit format diffu
+# prizpusobit format diffu (problem asi)
 # pouzit printf misto echo
 # zavest log do FS
 
@@ -22,7 +24,22 @@ formatbold='\e[1m'
 formatunderline='\e[4m'
 formatunderlinereset='\e[24m'
  
- 
+tucne () {
+    echo -en '\e[1m'"$1"'\e[21m'
+}
+podtrzene () {
+    echo -en '\e[4m'"$1"'\e[24m'
+}
+cervena () {
+    echo -en '\e[31m'"$1"'\e[39m'
+}
+modra () {
+    echo -en '\e[34m'"$1"'\e[39m'
+}
+zelena () {
+    echo -en '\e[32m'"$1"'\e[39m'
+}
+
 # Funkce pro uklid
 uklid () {
     if [ -d "$tmpdir" ];
@@ -43,7 +60,6 @@ chyba () {
 }
 
 # Uvodni zprava
-echo -e "\n"
 echo -e "${formatbold}${colorcyan}Testovaci skript pro PA1${colorreset}${formatboldreset}"
 echo -e "${colorblue}Jakub Jun 2016${colorreset}"
 echo -e "${colorblue}https://github.com/jayjay221/testdata.sh${colorreset}"
@@ -155,28 +171,33 @@ declare -a ROZDILY
 i=0
 for SOUBOR in ${REFERVYS[*]};
 do
+    echo -en "${colorcyan}${formatbold}Vystup $i:${formatboldreset}${colorreset}"
     # Porovnavame, pri rozdilu inkrementujeme $chyby
     ROZDILY[$i]="$(diff "$SOUBOR" "${MYVYSTUP[$i]}" 2>&1)"
     if [ $? == 1 ];
     then
+        echo -e " ${colorred}${formatbold}CHYBA${formatboldreset}${colorreset}"
         chyby=$((chyby+1))
     else
         ROZDILY[$i]=""
+        echo -e " ${colorgreen}${formatbold}OK${formatboldreset}${colorreset}"
     fi
     i=$((i+1))
 done
-echo "----------"
+
+echo -e "${colorcyan}${formatbold}--------------${formatboldreset}${colorreset}"
 i=1
 for ROZDIL in "${ROZDILY[@]}";
 do
     if [ "$ROZDIL" != "" ];
     then
-        echo -e "${colorred}${formatbold}Vystup $i${formatboldreset}${colorreset}"
-        echo -e "${coloryellow}-----${colorreset}"
+        echo -e "${colorred}${formatbold}Vystup $((i-1)) [${coloryellow}$(basename ${REFERVYS[i]})${colorred}]${formatboldreset}${colorreset}"
+        echo -e "${coloryellow}----------------${colorreset}"
         echo "$ROZDIL"
-        echo -e "${coloryellow}----------${colorreset}"
-        i=$(($i+1))
+        echo -e "${coloryellow}----------------${colorreset}"
+        
     fi
+    i=$(($i+1))
 done
 
 # Oznamime vysledek
@@ -186,6 +207,7 @@ then
     echo -e "${colorgreen}${formatbold}vse je v poradku${formatboldreset}${colorreset}"
 else
     # Neuspech
+    echo -e "${colorcyan}${formatbold}--------------${formatboldreset}${colorreset}"
     echo -e "${formatbold}${colorred}${formatunderline}$chyby${formatunderlinereset} vystupu nesedi${colorreset}${formatboldreset}"
 fi
  
