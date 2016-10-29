@@ -5,4 +5,5 @@ Script takes 2 optional arguments.
 First defines path to compiled C program.
 Second defines path to .tgz archive containing reference I/O
 
-![screenshot](https://github.com/jayjay221/testdata.sh/blob/master/screenshot.png?raw=true)
+![screenshot1](https://github.com/jayjay221/testdata.sh/blob/master/screenshot1.png?raw=true)
+![screenshot2](https://github.com/jayjay221/testdata.sh/blob/master/screenshot2.png?raw=true)
