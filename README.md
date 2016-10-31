@@ -33,5 +33,7 @@ Then you can run the script the same way you would run installed programs from a
 testdata path_to_executable path_to_tar.gz
 ```
 
+## Screenshots
+
 ![screenshot1](https://github.com/jayjay221/testdata.sh/blob/master/screenshot1.png?raw=true)
 ![screenshot2](https://github.com/jayjay221/testdata.sh/blob/master/screenshot2.png?raw=true)
