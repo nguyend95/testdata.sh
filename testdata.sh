@@ -1,5 +1,5 @@
 #!/bin/bash
-
+lollllll
 # TODO
 # vyrobit funkce!!!
 # funkce pro barvy
