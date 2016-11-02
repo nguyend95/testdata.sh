@@ -179,7 +179,7 @@ testAgRef () {
     do
         printf "$(tucne "Vystup %*d:")" "$POCET" "$i"
         # Porovnavame, pri rozdilu inkrementujeme $chyby
-        ROZDILY[$i]="$(diff --old-group-format "" --new-group-format "" --unchanged-group-format "" --changed-group-format "$(tucne "[$(tyrkysova "%-1.1dL")]$(cervena ty)"): %>$(tucne "[$(tyrkysova "%-1.1dL")]$(zelena ref)"): %<" "$SOUBOR" "${MYVYSTUP[$i]}" 2>&1)"
+        ROZDILY[$i]="$(diff --old-group-format "" --new-group-format "" --unchanged-group-format "" --changed-group-format "$(tucne "[$(tyrkysova "%-1.1dL")] $(cervena ty)"): %>$(tucne "[$(tyrkysova "%-1.1dL")]$(zelena ref)"): %<" "$SOUBOR" "${MYVYSTUP[$i]}" 2>&1)"
         if [ $? == 1 ];
         then
             printf " $(tucne "$(cervena %6s)")\n" "CHYBA"
@@ -230,29 +230,78 @@ removeTempDir () {
     exit 0
 }
 
+readData () {
+    if [ ! -d "testdata_io" ]
+    then
+        mkdir "testdata_io"
+    fi
+    
+    printf "$(zelena $(tucne %s))\n" "Skript byl spusten v rezimu IO"
+    printf "$(zelena $(tucne %s))\n" "Zadej vzorova vstupni data"
+    
+    NAZEVIN=$(printf "custom_input_%08d.txt" "0")
+    NAZEVOUT=$(printf "custom_output_%08d.txt" "0")
+    
+    i=0
+    for SOUBOR in $(ls -v testdata_io)
+    do
+        if [ "$SOUBOR" = "$NAZEVIN" ]
+        then
+            ((i++))
+            NAZEVIN=$(printf "custom_input_%08d.txt" "$i")
+            NAZEVOUT=$(printf "custom_output_%08d.txt" "$i")
+        else
+            break
+        fi
+    done
+    
+    
+    
+    VSTUP=$(cat)
+    printf "%s" "$VSTUP" > "testdata_io/$NAZEVIN"
+    
+    
+    printf "\n$(zelena $(tucne %s))\n" "Nyni zadej vzorova vystupni data."
+    
+    VSTUP=$(cat)
+    printf "%s" "$VSTUP" > "testdata_io/$NAZEVOUT"
+    
+    printf "\n$(zelena $(tucne %s))\n" "Data byla ulozena do \"testdata_io/$NAZEVIN, $NAZEVOUT\""
+}
+
+
 
 # Uvodni zprava
+
 welcome
 
-# Argumenty
-ARCHIV=$2
-PROGRAM=$1
+if [ "$1" = "add" ]
+then
+    MODE="add"
+fi
 
-declare -a REFERVYS
-declare -a REFERVSTUP
-declare -a MYVYSTUP
-declare -a ROZDILY
-
-parseArg
-doFilesExist
-makeTempDir
-unPack
-saveRefOut
-saveRefIn
-saveOurOut
-testAgRef
-printRes
-removeTempDir
+if [ "$MODE" = "add" ]
+then
+    readData
+else
+    # Argumenty
+    ARCHIV=$2
+    PROGRAM=$1
+    declare -a REFERVYS
+    declare -a REFERVSTUP
+    declare -a MYVYSTUP
+    declare -a ROZDILY
+    parseArg
+    doFilesExist
+    makeTempDir
+    unPack
+    saveRefOut
+    saveRefIn
+    saveOurOut
+    testAgRef
+    printRes
+    removeTempDir
+fi
 
 
 
