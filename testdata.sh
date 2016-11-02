@@ -142,6 +142,17 @@ saveRefOut () {
         REFERVYS[$i]="$SOUBOR"
         ((i++))
     done
+    
+    
+    if [ "$MODE" = "custom" ]
+    then
+        local i=0
+        for SOUBOR in $(ls -v testdata_io/custom_output_*);
+        do
+            REFERVYSCUST[$i]="$SOUBOR"
+            ((i++))
+        done
+    fi
 }
 
 saveRefIn () {
@@ -153,6 +164,16 @@ saveRefIn () {
         REFERVSTUP[$i]="$SOUBOR"
         ((i++))
     done
+    
+    if [ "$MODE" = "custom" ]
+    then
+        local i=0
+        for SOUBOR in $(ls -v testdata_io/custom_input_*);
+        do
+            REFERVSTUPCUST[$i]="$SOUBOR"
+            ((i++))
+        done
+    fi   
 }
 
 saveOurOut () {
@@ -163,10 +184,20 @@ saveOurOut () {
     do
         ITER=$(printf "%04d" $i)
         # Nasledujici prikaz potreba osetrit.
-        $PROGRAM < $SOUBOR > "$TMPDIR/vysledky/${ITER}_myout.txt" ;
+        $PROGRAM < $SOUBOR > "$TMPDIR/vysledky/${ITER}_myout.txt"
         MYVYSTUP[$i]="$TMPDIR/vysledky/${ITER}_myout.txt"
         ((i++))
     done
+    
+    if [ "$MODE" = "custom" ]
+    then
+        local i=0
+        ITER=$(printf "%08d" $i)
+        # Nasledujici prikaz potreba osetrit.
+        $PROGRAM < $SOUBOR > "$TMPDIR/vysledky/${ITER}_cust_myout.txt"
+        MYVYSTUPCUST[$i]="$TMPDIR/vysledky/${ITER}_cust_myout.txt"
+        ((i++))
+    fi   
 }
 
 testAgRef () {
@@ -190,6 +221,29 @@ testAgRef () {
         fi
         ((i++))
     done
+    
+    if [ "$MODE" = "custom" ]
+    then
+        chybycust=0
+        local POCET=${#REFERVYSCUST[@]}
+        POCET=${#POCET}
+        local i=0
+        for SOUBOR in ${REFERVYSCUST[*]};
+        do
+            printf "$(tucne "Vystup %*d:")" "$POCET" "$i"
+            # Porovnavame, pri rozdilu inkrementujeme $chyby
+            ROZDILYCUST[$i]="$(diff --old-group-format "" --new-group-format "" --unchanged-group-format "" --changed-group-format "$(tucne "[$(tyrkysova "%-1.1dL")] $(cervena ty)"): %>$(tucne "[$(tyrkysova "%-1.1dL")]$(zelena ref)"): %<" "$SOUBOR" "${MYVYSTUPCUST[$i]}" 2>&1)"
+            if [ $? == 1 ];
+            then
+                printf " $(tucne "$(cervena %6s)")\n" "CHYBA"
+                ((chybycust++))
+            else
+                ROZDILYCUST[$i]=""
+                printf " $(tucne "$(zelena %3s)")\n" "OK"
+            fi
+            ((i++))
+        done
+    fi
 
     printf "$(tucne $(tyrkysova %s))\n" "--------------"
     
@@ -205,7 +259,22 @@ testAgRef () {
         fi
         ((i++))
     done
+    
+    for ROZDIL in "${ROZDILYCUST[@]}";
+    do
+        local k=0
+        if [ "$ROZDIL" != "" ];
+        then
+            
+            #echo -e "${colorred}${formatbold}Vystup $((i)) [${coloryellow}$(basename ${REFERVYSCUST[i]})${colorred}]${formatboldreset}${colorreset}"
+            printf "$(tucne "$(cervena "Vystup %d") [$(zluta %s)]")\n" "$k" "$(basename ${REFERVYSCUST[k]})"
+            printf "%s\n" "$ROZDIL"
+            printf "$(zluta %s)\n" "--------------------ddddd---------"
+        fi
+        ((i++))
+    done
 }
+
 
 printRes () {
     # Oznamime vysledek
@@ -280,6 +349,13 @@ then
     MODE="add"
 fi
 
+if [ "$1" = "-c" ]
+then
+    MODE="custom"
+    shift
+fi
+
+
 if [ "$MODE" = "add" ]
 then
     readData
@@ -290,7 +366,13 @@ else
     declare -a REFERVYS
     declare -a REFERVSTUP
     declare -a MYVYSTUP
+    
     declare -a ROZDILY
+    
+    declare -a REFERVSTUPCUST
+    declare -a REFERVYSCUST
+    declare -a MYVYSTUPCUST
+    
     parseArg
     doFilesExist
     makeTempDir
