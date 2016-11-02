@@ -9,43 +9,48 @@
 # pouzit printf misto echo
 # zavest log do FS
 
+AUTOR="Jakub Jun"
+ROK="2016"
+URL="https://github.com/jayjay221/testdata.sh"
+VERZE="0.2.0"
 
-# Barvy
-colorreset='\e[39m'
-coloryellow='\e[33m'
-colorblue='\e[34m'
-colorcyan='\e[36m'
-colorred='\e[31m'
-colorgreen='\e[32m'
+TMPDIR="/tmp/testdata"
 
-# Formatovani
-formatboldreset='\e[21m'
-formatbold='\e[1m'
-formatunderline='\e[4m'
-formatunderlinereset='\e[24m'
- 
+
+# Funkce formatovani
+
 tucne () {
-    echo -en '\e[1m'"$1"'\e[21m'
-}
-podtrzene () {
-    echo -en '\e[4m'"$1"'\e[24m'
-}
-cervena () {
-    echo -en '\e[31m'"$1"'\e[39m'
-}
-modra () {
-    echo -en '\e[34m'"$1"'\e[39m'
-}
-zelena () {
-    echo -en '\e[32m'"$1"'\e[39m'
+    printf "\e[1m%s\e[21m" "$1"
 }
 
-# Funkce pro uklid
-uklid () {
-    if [ -d "$tmpdir" ];
-    then
-        rm -rf "$tmpdir"
-    fi
+podtrzene () {
+    printf "\e[4m%s\e[24m" "$1"
+}
+
+# Funkce barev
+
+cervena () {
+    printf "\e[31m%s\e[39m" "$1"
+}
+
+modra () {
+    printf "\e[34m%s\e[39m" "$1"
+}
+
+zelena () {
+    printf "\e[32m%s\e[39m" "$1"
+}
+
+tyrkysova () {
+    printf "\e[36m%s\e[39m" "$1"
+}
+
+zluta () {
+    printf "\e[33m%s\e[39m" "$1"
+}
+
+chyba () {
+    printf "$(cervena "$(tucne ERROR): %s")\n" "$1"
 }
 
 # Funkce pro terminaci
@@ -54,167 +59,222 @@ term () {
     exit "$1"
 }
 
-# Funkce vypisuje chyby
-chyba () {
-    echo -e "${formatbold}${colorred}${formatunderline}ERROR${formatunderlinereset}: $1${colorreset}${formatboldreset}"
+welcome () {
+    local NAZEV="Testovaci skript pro PA1"
+    
+    printf "$(tyrkysova "$(tucne %s) %s")\n" "$NAZEV" "$VERZE"
+    printf "$(modra "%s %s")\n" "$AUTOR" "$ROK"
+    printf "$(modra %s)\n" "$URL"
 }
 
+parseArg () {
+    # Byly vubec zadany argumenty?
+    if [ -z "${2+xxx}" ];
+    then 
+        ARCHIV="sample.tgz"
+    fi
+
+    if [ -z "${1+xxx}" ];
+    then
+        PROGRAM="./a.out"
+    fi
+    
+    # Jsou cesty absolutni nebo relativni?
+    local initialarch="$(printf "%s" "$ARCHIV" | head -c 1)"
+    local initialprog="$(printf "%s" "$PROGRAM" | head -c 1)"
+
+    if [  "$initialarch" != "/" ];
+    then
+        ARCHIV="$(pwd)/$ARCHIV"
+    fi
+
+    if [  "$initialprog" != "/" ];
+    then
+        PROGRAM="$(pwd)/$PROGRAM"
+    fi
+}
+
+doFilesExist () {
+    # Existuji soubory?
+    if [ ! -e "$PROGRAM" ]
+    then
+        term "5" "\"$PROGRAM\" neexistuje"
+    fi
+
+    if [ ! -e "$ARCHIV" ]
+    then
+        term "5" "\"$ARCHIV\" neexistuje"
+    fi
+}
+
+makeTempDir () {
+    # Vytvorime si tmp adresare pro praci se soubory
+    if  ! mkdir "$TMPDIR" > "/dev/null" 2>&1 ;
+    then
+        term "1" "Nelze vytvorit \"$TMPDIR\""
+    fi
+    if  ! mkdir -p "$TMPDIR/referencni_archiv" > "/dev/null" 2>&1 ;
+    then
+        term "1" "Nelze vytvorit \"$TMPDIR/referencni_archiv\""
+    fi
+    if  ! mkdir -p "$TMPDIR/vysledky" > "/dev/null" 2>&1 ;
+    then
+        term "1" "Nelze vytvorit \"$TMPDIR/vysledky\""
+    fi
+}
+
+unPack () {
+    # Rozbalime archiv
+    if  ! tar -C "$TMPDIR/referencni_archiv" -xvf "$ARCHIV" > "/dev/null" 2>&1 ;
+    then
+        term "2" "Nelze rozbalit \"$ARCHIV\" do \"$TMPDIR/referencni_archiv\""
+    fi
+}
+
+saveRefOut () {
+    # Pripravime pole s referencnimi vystupy
+    # Iterator nastavime na 0
+    local i=0
+
+    # Postupne si ulozime referencni vystupy do pole
+    for SOUBOR in $(ls -v $TMPDIR/referencni_archiv/CZE/*_out.txt);
+    do
+        REFERVYS[$i]="$SOUBOR"
+        ((i++))
+    done
+}
+
+saveRefIn () {
+    # To same nyni s vstupy
+    local i=0
+
+    for SOUBOR in $(ls -v $TMPDIR/referencni_archiv/CZE/*_in.txt);
+    do
+        REFERVSTUP[$i]="$SOUBOR"
+        ((i++))
+    done
+}
+
+saveOurOut () {
+    # A jeste s vystupy naseho programu
+    local i=0
+
+    for SOUBOR in ${REFERVSTUP[*]};
+    do
+        ITER=$(printf "%04d" $i)
+        # Nasledujici prikaz potreba osetrit.
+        $PROGRAM < $SOUBOR > "$TMPDIR/vysledky/${ITER}_myout.txt" ;
+        MYVYSTUP[$i]="$TMPDIR/vysledky/${ITER}_myout.txt"
+        ((i++))
+    done
+}
+
+testAgRef () {
+    # Spocitame chyby
+    chyby=0
+    local POCET=${#REFERVYS[@]}
+    POCET=${#POCET}
+    local i=0
+    for SOUBOR in ${REFERVYS[*]};
+    do
+        printf "$(tucne "Vystup %*d:")" "$POCET" "$i"
+        # Porovnavame, pri rozdilu inkrementujeme $chyby
+        ROZDILY[$i]="$(diff --old-group-format "" --new-group-format "" --unchanged-group-format "" --changed-group-format "$(tucne "[$(tyrkysova "%-1.1dL")]$(cervena ty)"): %>$(tucne "[$(tyrkysova "%-1.1dL")]$(zelena ref)"): %<" "$SOUBOR" "${MYVYSTUP[$i]}" 2>&1)"
+        if [ $? == 1 ];
+        then
+            printf " $(tucne "$(cervena %6s)")\n" "CHYBA"
+            ((chyby++))
+        else
+            ROZDILY[$i]=""
+            printf " $(tucne "$(zelena %3s)")\n" "OK"
+        fi
+        ((i++))
+    done
+
+    printf "$(tucne $(tyrkysova %s))\n" "--------------"
+    
+    local i=0
+    for ROZDIL in "${ROZDILY[@]}";
+    do
+        if [ "$ROZDIL" != "" ];
+        then
+            #echo -e "${colorred}${formatbold}Vystup $((i)) [${coloryellow}$(basename ${REFERVYS[i]})${colorred}]${formatboldreset}${colorreset}"
+            printf "$(tucne "$(cervena "Vystup %d") [$(zluta %s)]")\n" "$i" "$(basename ${REFERVYS[i]})"
+            printf "%s\n" "$ROZDIL"
+            printf "$(zluta %s)\n" "-----------------------------"
+        fi
+        ((i++))
+    done
+}
+
+printRes () {
+    # Oznamime vysledek
+    if [ $chyby == 0 ];
+    then
+        # Uspech
+        printf "$(tucne $(zelena %s))\n" "vse je v poradku"
+    else
+        # Neuspech
+        printf "$(tucne $(tyrkysova %s))\n" "--------------"
+        printf "$(cervena "$(tucne "%d vystupu nesedi")")\n" "$chyby"
+    fi
+}
+
+removeTempDir () {
+# Uklidime po sobe
+    if  ! rm -rf "$TMPDIR" > "/dev/null" 2>&1 ;
+    then
+        term "4" "Nelze smazat \"$TMPDIR\""
+    fi
+
+    exit 0
+}
+
+
 # Uvodni zprava
-echo -e "${formatbold}${colorcyan}Testovaci skript pro PA1${colorreset}${formatboldreset}"
-echo -e "${colorblue}Jakub Jun 2016${colorreset}"
-echo -e "${colorblue}https://github.com/jayjay221/testdata.sh${colorreset}"
+welcome
 
 # Argumenty
 ARCHIV=$2
 PROGRAM=$1
-tmpdir="/tmp/testdata"
 
-# Byly vubec zadany argumenty?
-if [ -z "${2+xxx}" ];
-then 
-ARCHIV="sample.tgz"
-#echo "Nebyla uvedena cesta k archivu."
-#echo "Pouzivam implicitni archiv \"./sample.tgz\"."
-fi
-
-if [ -z "${1+xxx}" ];
-then
-PROGRAM="./a.out"
-#echo "Nebyla uvedena cesta k spustitelnemu souboru."
-#echo "Pouzivam implicitni program \"./a.out\""
-fi
-
-# Jsou cesty absolutni nebo relativni?
-initialarch="$(echo $ARCHIV | head -c 1)"
-initialprog="$(echo $PROGRAM | head -c 1)"
-
-if [  "$initialarch" != "/" ];
-then
-    ARCHIV="$(pwd)/$ARCHIV"
-fi
-
-if [  "$initialprog" != "/" ];
-then
-    PROGRAM="$(pwd)/$PROGRAM"
-fi
-
-# Existuji soubory?
-if [ ! -e "$PROGRAM" ]
-then
-    term "5" "\"$PROGRAM\" neexistuje"
-fi
-
-if [ ! -e "$ARCHIV" ]
-then
-    term "5" "\"$ARCHIV\" neexistuje"
-fi
-
-# Vytvorime si tmp adresare pro praci se soubory
-if  ! mkdir "$tmpdir" > "/dev/null" 2>&1 ;
-then
-    term "1" "Nelze vytvorit \"$tmpdir\""
-fi
-if  ! mkdir -p "$tmpdir/referencni_archiv" > "/dev/null" 2>&1 ;
-then
-    term "1" "Nelze vytvorit \"$tmpdir/referencni_archiv\""
-fi
-if  ! mkdir -p "$tmpdir/vysledky" > "/dev/null" 2>&1 ;
-then
-    term "1" "Nelze vytvorit \"$tmpdir/vysledky\""
-fi
-
-# Rozbalime archiv
-if  ! tar -C "$tmpdir/referencni_archiv" -xvf "$ARCHIV" > "/dev/null" 2>&1 ;
-then
-    term "2" "Nelze rozbalit \"$ARCHIV\" do \"$tmpdir/referencni_archiv\""
-fi
-
-# Pripravime pole s referencnimi vystupy
 declare -a REFERVYS
-# Iterator nastavime na 0
-i=0
-
-# Postupne si ulozime referencni vystupy do pole
-for SOUBOR in $(ls -v $tmpdir/referencni_archiv/CZE/*_out.txt);
-do
-    REFERVYS[$i]="$SOUBOR"
-    i=$((i+1))
-done
-
-# To same nyni s vstupy
 declare -a REFERVSTUP
-i=0
-
-for SOUBOR in $(ls -v $tmpdir/referencni_archiv/CZE/*_in.txt);
-do
-    REFERVSTUP[$i]="$SOUBOR"
-    i=$((i+1))
-done
-
-# A jeste s vystupy naseho programu
-i=0
 declare -a MYVYSTUP
-
-for SOUBOR in ${REFERVSTUP[*]};
-do
-    ITER=$(printf "%04d" $i)
-    # Nasledujici prikaz potreba osetrit.
-    $PROGRAM < $SOUBOR > "$tmpdir/vysledky/${ITER}_myout.txt" ;
-    MYVYSTUP[$i]="$tmpdir/vysledky/${ITER}_myout.txt"
-    i=$((i+1))
-done
-
-
-# Spocitame chyby
-chyby=0
 declare -a ROZDILY
-i=0
-for SOUBOR in ${REFERVYS[*]};
-do
-    echo -en "${colorcyan}${formatbold}Vystup $i:${formatboldreset}${colorreset}"
-    # Porovnavame, pri rozdilu inkrementujeme $chyby
-    ROZDILY[$i]="$(diff "$SOUBOR" "${MYVYSTUP[$i]}" 2>&1)"
-    if [ $? == 1 ];
-    then
-        echo -e " ${colorred}${formatbold}CHYBA${formatboldreset}${colorreset}"
-        chyby=$((chyby+1))
-    else
-        ROZDILY[$i]=""
-        echo -e " ${colorgreen}${formatbold}OK${formatboldreset}${colorreset}"
-    fi
-    i=$((i+1))
-done
 
-echo -e "${colorcyan}${formatbold}--------------${formatboldreset}${colorreset}"
-i=0
-for ROZDIL in "${ROZDILY[@]}";
-do
-    if [ "$ROZDIL" != "" ];
-    then
-        echo -e "${colorred}${formatbold}Vystup $((i)) [${coloryellow}$(basename ${REFERVYS[i]})${colorred}]${formatboldreset}${colorreset}"
-        echo -e "${coloryellow}----------------${colorreset}"
-        echo "$ROZDIL"
-        echo -e "${coloryellow}----------------${colorreset}"
-        
-    fi
-    i=$(($i+1))
-done
+parseArg
+doFilesExist
+makeTempDir
+unPack
+saveRefOut
+saveRefIn
+saveOurOut
+testAgRef
+printRes
+removeTempDir
 
-# Oznamime vysledek
-if [ $chyby == 0 ];
-then
-    # Uspech
-    echo -e "${colorgreen}${formatbold}vse je v poradku${formatboldreset}${colorreset}"
-else
-    # Neuspech
-    echo -e "${colorcyan}${formatbold}--------------${formatboldreset}${colorreset}"
-    echo -e "${formatbold}${colorred}${formatunderline}$chyby${formatunderlinereset} vystupu nesedi${colorreset}${formatboldreset}"
-fi
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  
-# Uklidime po sobe
-if  ! rm -rf "$tmpdir" > "/dev/null" 2>&1 ;
-then
-    term "4" "Nelze smazat \"$tmpdir\""
-fi
-
-exit 0
